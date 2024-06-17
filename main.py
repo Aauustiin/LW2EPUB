@@ -53,7 +53,6 @@ def createEbookFromPost(url):
     
 
 def createEbookFromSequence(url):
-    print("Not yet implemented.")
     book = epub.EpubBook()
 
     page = urlopen(url)
@@ -100,14 +99,8 @@ def createEbookFromSequence(url):
         # Scrape section post urls
         # Create chapter for each post
         # Add authors from chapters
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, chapters[0].title),
-                epub.Link(chapters[1].file_name, chapters[1].title, chapters[1].title),
-                epub.Link(chapters[2].file_name, chapters[2].title, chapters[2].title),
-                epub.Link(chapters[3].file_name, chapters[3].title, chapters[3].title),
-                epub.Link(chapters[4].file_name, chapters[4].title, chapters[4].title),
-                epub.Link(chapters[5].file_name, chapters[5].title, chapters[5].title),
-                epub.Link(chapters[6].file_name, chapters[6].title, chapters[6].title),)
-    book.spine = [chapters[0], chapters[1], chapters[2], chapters[3], chapters[4], chapters[5], chapters[6]]
+    book.toc = tuple(map(lambda x : epub.Link(x.file_name, x.title, x.title), chapters))
+    book.spine = chapters
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
 
