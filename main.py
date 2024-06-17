@@ -68,44 +68,45 @@ def createEbookFromSequence(url):
     author = soup.find('a', class_="UsersNameDisplay-noColor")
     author = author.get_text()
     book.add_author(author)
-    # authors = set()
-    # authors.add(author)
 
     book.set_language('en')
     description = "The sequence \"" + title + "\", formatted as an .epub."
     book.add_metadata('DC', 'description', description)
-    # initial_preamble = soup.find('div', class_="SequencesPage-description ContentStyles-base content ContentStyles-postBody")
-    # Make html for initial preamble
+    initial_preamble = soup.find('div', class_="SequencesPage-description ContentStyles-base content ContentStyles-postBody")
+
+    frontmatter = epub.EpubHtml(title=title,
+                    file_name=title + '.xhtml',
+                    lang='en',
+                    uid=title)
+    frontmatter.set_content("<h1>" + str(title) + "</h1><p>" + str(initial_preamble) + "</p>")
+    book.add_item(frontmatter)
 
     content = soup.find("div", class_="chapters-list")
-    divs = content.findAll("div")
+    sections = content.children
 
-    post_urls = divs[0].findAll("span", class_="PostsTitle-eaTitleDesktopEllipsis")
-    post_urls = map(lambda x : urljoin(url, x.find("a").get("href")), post_urls)
-    chapters = map(lambda x : createChapterFromPostURL(x), post_urls)
-    chapters, chapter_authors = zip(*chapters)
-    # authors.add(chapter_authors)
-    for chapter in chapters:
+    spine = [frontmatter, "nav"]
+    toc = []
+
+    for section in sections:
+        section_title = section.find("div", class_="ChaptersItem-title").get_text()
+        # section_preamble = section.find("div", class_="ChaptersItem-description ContentStyles-base content ContentStyles-postBody")
+        post_urls = section.findAll("span", class_="PostsTitle-eaTitleDesktopEllipsis")
+        post_urls = map(lambda x : urljoin(url, x.find("a").get("href")), post_urls)
+        content = map(lambda x : createChapterFromPostURL(x), post_urls)
+        chapters, authors = zip(*content)
+        if section_title == "":
+            toc.extend([epub.Link(x.file_name, x.title, x.title) for x in chapters])
+        else:
+            toc.append((epub.Section(section_title), chapters))
+        spine.extend(chapters)
+    
+    for chapter in spine[2:]:
         book.add_item(chapter)
-
-    # links = map(lambda x : epub.Link(x.file_name, x.title, x.title), chapters)
-    # book.toc = tuple(links)
-    # book.spine = chapters
-
-    # for div in divs[1:]:
-        # Scrape section title
-        # Scrape section preamble
-        # Make html for preamble
-        # Scrape section post urls
-        # Create chapter for each post
-        # Add authors from chapters
-    book.toc = tuple(map(lambda x : epub.Link(x.file_name, x.title, x.title), chapters))
-    book.spine = chapters
+    
+    book.toc = toc
+    book.spine = spine
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-
-    # for author in authors:
-    #     book.add_author(author)
 
     epub.write_epub(title + '.epub', book)
     print("Successfully created ebook!")
